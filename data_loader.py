@@ -10,10 +10,10 @@ def process_movie_data(spark):
     '''
     data_path = '/scratch/work/courses/DSGA1004-2021/movielens/ml-latest-small/'
     # Load the data into DataFrame
-    links = spark.read.csv(f'{data_path}links.csv',header=True,schema='movieId STRING, imdbId STRING, tmdbId STRING')
-    movies = spark.read.csv(f'{data_path}movies.csv',header=True,schema='movieId STRING, title STRING, genres STRING')
-    ratings = spark.read.csv(f'{data_path}ratings.csv',header=True,schema='userId STRING,movieId STRING,rating FLOAT, timestamp STRING')
-    tags = spark.read.csv(f'{data_path}tags.csv',header=True,schema='userId STRING,movieId STRING,tag STRING')
+    links = spark.read.csv(f'{data_path}links.csv',header=True,schema='movieId INT, imdbId STRING, tmdbId STRING')
+    movies = spark.read.csv(f'{data_path}movies.csv',header=True,schema='movieId INT, title STRING, genres STRING')
+    ratings = spark.read.csv(f'{data_path}ratings.csv',header=True,schema='userId INT,movieId INT,rating FLOAT, timestamp INT')
+    tags = spark.read.csv(f'{data_path}tags.csv',header=True,schema='userId INT,movieId INT,tag STRING')
 
 
 
@@ -32,16 +32,16 @@ def process_movie_data(spark):
     ratings.createOrReplaceTempView('ratings')
     tags.createOrReplaceTempView('tags')
 
-    df = spark.sql('SELECT rt.userId,rt.movieId,mov.title,rt.rating FROM ratings rt JOIN movies mov ON rt.movieId=mov.movieId')
-    df.repartition(10,'userId')
-    # df.sort('userId')
-    # (training, test) = df.randomSplit([0.8, 0.2])
+    df = spark.sql('SELECT rt.*,mov.title FROM ratings rt JOIN movies mov ON rt.movieId=mov.movieId')
+    df.repartition(10,'timestamp')
+    df.sort('timestamp')
+    print(df.head())
+    (training, test) = df.randomSplit([0.8, 0.2])
     # training.write.parquet('training.parquet')
     # val.write.parquet('val.parquet')
     # test.write.parquet('test.parquet')
-    # training.write.csv('training.csv')
-    # test.write.csv('test.csv')
-    print(df.rdd.getNumPartitions())
+    training.write.csv('training.csv')
+    test.write.csv('testing.csv')
 
  
 if __name__ == "__main__":

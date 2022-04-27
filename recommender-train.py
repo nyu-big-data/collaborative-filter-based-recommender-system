@@ -36,6 +36,10 @@ def train_model(spark, latentRanks, regularizationParams):
 
     #fetch the best model
     best_model = model.bestModel
+
+    test_pred = best_model.transform(ratingsTest)
+    rmse = evaluator.evaluate(test_pred)
+    print(rmse)
     # print("Best Model - Rank:",best_model.getRank(), " RegParam:",best_model.getRegParam())
     return best_model
     
@@ -56,7 +60,7 @@ if __name__ == "__main__":
 
     model = train_model(spark, latentRanks, regularizationParams)
 
-    evaluate_test_pred(model)
+    # evaluate_test_pred(model)
 
 
     # Generate top 10 movie recommendations for each user
@@ -65,15 +69,15 @@ if __name__ == "__main__":
     movieRecs = model.recommendForAllItems(10)
 
     # Generate top 10 movie recommendations for a specified set of users
-    users = ratings.select(als.getUserCol()).distinct().limit(3)
-    userSubsetRecs = model.recommendForUserSubset(users, 10)
+    # users = ratings.select(als.getUserCol()).distinct().limit(3)
+    # userSubsetRecs = model.recommendForUserSubset(users, 10)
     # Generate top 10 user recommendations for a specified set of movies
-    movies = ratings.select(als.getItemCol()).distinct().limit(3)
-    movieSubSetRecs = model.recommendForItemSubset(movies, 10)
+    # movies = ratings.select(als.getItemCol()).distinct().limit(3)
+    # movieSubSetRecs = model.recommendForItemSubset(movies, 10)
     # $example off$
-    userRecs.show()
-    movieRecs.show()
-    userSubsetRecs.show()
-    movieSubSetRecs.show()
+    # userRecs.show()
+    # movieRecs.show()
+    # userSubsetRecs.show()
+    # movieSubSetRecs.show()
 
     spark.stop()
