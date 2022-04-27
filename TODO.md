@@ -1,0 +1,3 @@
+ - Timestamp Correct Type
+ - Rating DataType 
+ - remove gitignore for csv and parquet later on
