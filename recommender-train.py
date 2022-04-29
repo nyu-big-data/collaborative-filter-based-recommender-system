@@ -1,3 +1,5 @@
+import getpass
+
 from pyspark.sql import SparkSession
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
@@ -6,17 +8,11 @@ from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 
 # from pyspark.sql import Row
 
-def train_model(spark, latentRanks, regularizationParams):
-    # training = spark.read.csv("./training.csv").rdd
-    # testing = spark.read.csv("./testing.csv").rdd
+def train_model(spark, netID,size_type, latentRanks, regularizationParams):
+    schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
+    ratingsTrain = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv' ,header=True ,schema=schema)
     
-    # ratingsTrain = spark.createDataFrame(training)
-    # ratingsTest = spark.createDataFrame(testing)
-    data_path = '/scratch/work/courses/DSGA1004-2021/movielens/ml-latest-small/'
-    ratings = spark.read.csv(f'{data_path}ratings.csv',header=True,schema='userId INT,movieId INT,rating FLOAT, timestamp STRING')
-    ratings.drop('timestamp')
-    (ratingsTrain, ratingsTest) = ratings.randomSplit([0.8, 0.2])
-
+    
     # Build the recommendation model using ALS on the training data
     # Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
     als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating", nonnegative = True, implicitPrefs = False, coldStartStrategy="drop")
@@ -37,14 +33,18 @@ def train_model(spark, latentRanks, regularizationParams):
     #fetch the best model
     best_model = model.bestModel
 
-    test_pred = best_model.transform(ratingsTest)
-    rmse = evaluator.evaluate(test_pred)
-    print(rmse)
-    # print("Best Model - Rank:",best_model.getRank(), " RegParam:",best_model.getRegParam())
-    return best_model
+    print("Best Model - Rank:",best_model._java_obj.parent().getRank(), " RegParam:",best_model._java_obj.parent().getRegParam())
+    # best_model.save("./models/")
     
-def evaluate_test_pred(model):
-    test_pred = model.transform(test)
+    return best_model,evaluator
+
+
+
+def evaluate_test_pred(model,evaluator):
+    schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
+    ratingsTest = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv' ,header=True),schema=schema)
+
+    test_pred = model.transform(ratingsTest)
     rmse = evaluator.evaluate(test_pred)
     print(rmse)
     return rmse,test_pred
@@ -57,10 +57,11 @@ if __name__ == "__main__":
 
     regularizationParams = [.01, .05, .1, .15]
     latentRanks = [10, 50, 100, 150]
+    netID = getpass.getuser()
+    size_type = 'ml-latest-small'
+    model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
 
-    model = train_model(spark, latentRanks, regularizationParams)
-
-    # evaluate_test_pred(model)
+    evaluate_test_pred(model,evaluator)
 
 
     # Generate top 10 movie recommendations for each user
@@ -75,8 +76,8 @@ if __name__ == "__main__":
     # movies = ratings.select(als.getItemCol()).distinct().limit(3)
     # movieSubSetRecs = model.recommendForItemSubset(movies, 10)
     # $example off$
-    # userRecs.show()
-    # movieRecs.show()
+    userRecs.show()
+    movieRecs.show()
     # userSubsetRecs.show()
     # movieSubSetRecs.show()
 

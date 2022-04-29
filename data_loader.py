@@ -29,6 +29,7 @@ def process_movie_data(spark,size_type,netID):
     df.repartition(10,'timestamp')
     
     (training, test) = df.randomSplit([0.8, 0.2])
+    print(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv')
     training.write.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv')
     test.write.csv(f'hdfs:/user/{netID}/movielens/{size_type}/testing.csv')
  
