@@ -12,8 +12,7 @@ def process_movie_data(spark,size_type,netID):
     '''
     # Load the data into DataFrame
     movies = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/movies.csv' ,header=True,schema='movieId INT, title STRING, genres STRING')
-    ratings = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/ratings.csv', header=True, schema='userId INT, movieId INT, rating FLOAT , timestamp INT')
-   
+    ratings = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/ratings.csv', header=True, schema='userId INT, movieId INT, rating FLOAT, timestamp INT')
 
     # print('Printing movies schema')
     movies.printSchema()
@@ -24,14 +23,13 @@ def process_movie_data(spark,size_type,netID):
     movies.createOrReplaceTempView('movies')
     ratings.createOrReplaceTempView('ratings')
 
-    df = spark.sql('SELECT rt.*,mov.title FROM ratings rt JOIN movies mov ON rt.movieId=mov.movieId')
+    df = spark.sql('SELECT rt.*, mov.title FROM ratings rt JOIN movies mov ON rt.movieId=mov.movieId')
     df.sort('timestamp')
     df.repartition(10,'timestamp')
     
-    (training, test) = df.randomSplit([0.8, 0.2])
-    print(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv')
-    training.write.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv')
-    test.write.csv(f'hdfs:/user/{netID}/movielens/{size_type}/testing.csv')
+    (train, test) = df.randomSplit([0.8, 0.2])
+    train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet')
+    test.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet')
  
 if __name__ == "__main__":
 
@@ -40,6 +38,6 @@ if __name__ == "__main__":
 
     netID = getpass.getuser()
 
-    process_movie_data(spark,'ml-latest-small',netID)
+    process_movie_data(spark, 'ml-latest-small', netID)
 
     spark.stop()
