@@ -27,8 +27,15 @@ def process_movie_data(spark,size_type,netID):
     df.sort('timestamp')
     df.repartition(10,'timestamp')
     
-    (train, test) = df.randomSplit([0.8, 0.2])
+    (trainUserIds, valUserIds, testUserIds) = df.select('userId').distinct().randomSplit([0.8, 0.1, 0.1])
+    val = df.filter(df.userId.isin(valUserIds["userId"]))
+    test = df.filter(df.userId.isin(testUserIds["userId"]))
+    train = df.filter(df.userId.isin(trainUserIds["userId"]))
+    (val_few_interactions,) = val.randomSplit([0.6])
+    (test_few_interactions,) = test.randomSplit([0.6])
+    train = train.union(val_few_interactions).union(test_few_interactions)
     train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet')
+    val.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/val.parquet')
     test.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet')
  
 if __name__ == "__main__":
@@ -39,5 +46,6 @@ if __name__ == "__main__":
     netID = getpass.getuser()
 
     process_movie_data(spark, 'ml-latest-small', netID)
+    process_movie_data(spark, 'ml-latest', netID)
 
     spark.stop()
