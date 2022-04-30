@@ -4,20 +4,20 @@ from pyspark.sql import SparkSession
 from pyspark.ml.evaluation import RegressionEvaluator
 from pyspark.ml.recommendation import ALS
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from pyspark.sql.functions import col
 
-
-# from pyspark.sql import Row
 
 def train_model(spark, netID,size_type, latentRanks, regularizationParams):
     schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
-    ratingsTrain = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv' ,header=True ,schema=schema)
+    ratingsTrain = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet' ,header=True ,schema=schema)
+    # ratingsTrain.drop('timestamp')
     
+    ratingsTrain = ratingsTrain.withColumn('userId', col('userId').cast('integer')).withColumn('movieId', col('movieId').cast('integer')).withColumn('rating', col('rating').cast('float')).drop('timestamp')
     
     # Build the recommendation model using ALS on the training data
     # Note we set cold start strategy to 'drop' to ensure we don't get NaN evaluation metrics
-    als = ALS(userCol="userId", itemCol="movieId", ratingCol="rating", nonnegative = True, implicitPrefs = False, coldStartStrategy="drop")
-    # model = als.fit(ratingsTrain)
-
+    als = ALS(maxIter=5, userCol="userId", itemCol="movieId", ratingCol="rating", nonnegative = True, implicitPrefs = False, coldStartStrategy="drop")
+   
     # Add hyperparameters and their respective values to param_grid
     param_grid = ParamGridBuilder().addGrid(als.rank, latentRanks).addGrid(als.regParam, regularizationParams).build()
 
@@ -29,12 +29,11 @@ def train_model(spark, netID,size_type, latentRanks, regularizationParams):
 
     #Fit cross validator to the training dataset
     model = cv.fit(ratingsTrain)
-
     #fetch the best model
     best_model = model.bestModel
-
+    
     print("Best Model - Rank:",best_model._java_obj.parent().getRank(), " RegParam:",best_model._java_obj.parent().getRegParam())
-    # best_model.save("./models/")
+    best_model.save("./models/")
     
     return best_model,evaluator
 
@@ -42,8 +41,9 @@ def train_model(spark, netID,size_type, latentRanks, regularizationParams):
 
 def evaluate_test_pred(model,evaluator):
     schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
-    ratingsTest = spark.read.csv(f'hdfs:/user/{netID}/movielens/{size_type}/training.csv' ,header=True),schema=schema)
-
+    ratingsTest = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet' ,header=True,schema=schema)
+    ratingsTest = ratingsTest.withColumn('userId', col('userId').cast('integer')).withColumn('movieId', col('movieId').cast('integer')).withColumn('rating', col('rating').cast('float')).drop('timestamp')
+    
     test_pred = model.transform(ratingsTest)
     rmse = evaluator.evaluate(test_pred)
     print(rmse)
@@ -55,7 +55,7 @@ def evaluate_test_pred(model,evaluator):
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Recommender-Model-GRP33").getOrCreate()
 
-    regularizationParams = [.01, .05, .1, .15]
+    regularizationParams = [.01, .05, .1, .2]
     latentRanks = [10, 50, 100, 150]
     netID = getpass.getuser()
     size_type = 'ml-latest-small'
