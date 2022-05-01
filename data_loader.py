@@ -26,7 +26,15 @@ def process_movie_data(spark,size_type,netID):
     df = spark.sql('SELECT rt.*, mov.title FROM ratings rt JOIN movies mov ON rt.movieId=mov.movieId')
     df.sort('timestamp')
     df.repartition(10,'timestamp')
-    
+
+    # vanilla dataset split
+    (train, test) = df.randomSplit([0.8, 0.2])
+    train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet')
+    test.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet')
+
+
+
+    # Dataset split for popularity baseline
     (trainUserIds, valUserIds, testUserIds) = df.select('userId').distinct().randomSplit([0.6, 0.2, 0.2])
     trainUserIds = [x.userId for x in trainUserIds.collect()]
     trainUserIds_broadcast = spark.sparkContext.broadcast(trainUserIds)
@@ -42,10 +50,12 @@ def process_movie_data(spark,size_type,netID):
     (val_few_interactions,_) = val.randomSplit([0.6, 0.4])
     (test_few_interactions,_) = test.randomSplit([0.6, 0.4])
     train = train.union(val_few_interactions).union(test_few_interactions)
-    train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet')
-    val.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/val.parquet')
-    test.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet')
- 
+    train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/train.parquet')
+    val.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/val.parquet')
+    test.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/test.parquet')
+
+
+
 if __name__ == "__main__":
 
     # Create the spark session object
