@@ -34,7 +34,7 @@ def train_model(spark, netID,size_type, latentRanks, regularizationParams):
     best_model = model.bestModel
     
     print("Best Model - Rank:",best_model._java_obj.parent().getRank(), " RegParam:",best_model._java_obj.parent().getRegParam())
-    best_model.save("./models")
+    # best_model.save("./models")
     
     return best_model,evaluator
 
@@ -55,8 +55,8 @@ def evaluate_test_pred(model,evaluator):
     window = Window.partitionBy(test_pred['userId']).orderBy(test_pred['prediction'].desc())  
     test_pred = test_pred.withColumn('rank', rank().over(window)).filter(col('rank') <= 100).groupby("userId").agg(func.collect_list(test_pred['movieId'].cast('double')).alias('pred_movies'))
     
-    window = Window.partitionBy(ratingstest['userId']).orderBy(ratingstest['rating'].desc())  
-    df_mov = ratingstest.withColumn('rank', rank().over(window)).filter(col('rank') <= 100).groupby("userId").agg(func.collect_list(ratingstest['movieId'].cast('double')).alias('movies'))
+    window = Window.partitionBy(ratingsTest['userId']).orderBy(ratingsTest['rating'].desc())  
+    df_mov = ratingsTest.withColumn('rank', rank().over(window)).filter(col('rank') <= 100).groupby("userId").agg(func.collect_list(ratingsTest['movieId'].cast('double')).alias('movies'))
     
     test_pred = test_pred.join(df_mov, test_pred.userId==df_mov.userId).drop('userId')
     rEvaluator = RankingEvaluator(predictionCol='pred_movies', labelCol='movies', metricName='meanAveragePrecision')
