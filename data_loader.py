@@ -2,7 +2,7 @@ import getpass
 
 # And pyspark.sql to get the spark session
 from pyspark.sql import SparkSession
-import pyspark.sql.functions as func
+import pyspark.sql.functions as F
 
 def process_movie_data(spark,size_type,netID):
     '''Loads MovieLens data, processes them into dataframe and divide into train,test and validation testset
@@ -27,12 +27,20 @@ def process_movie_data(spark,size_type,netID):
     df.sort('timestamp')
     df.repartition(10,'timestamp')
     
-    (trainUserIds, valUserIds, testUserIds) = df.select('userId').distinct().randomSplit([0.8, 0.1, 0.1])
-    val = df.filter(df.userId.isin(valUserIds["userId"]))
-    test = df.filter(df.userId.isin(testUserIds["userId"]))
-    train = df.filter(df.userId.isin(trainUserIds["userId"]))
-    (val_few_interactions,) = val.randomSplit([0.6])
-    (test_few_interactions,) = test.randomSplit([0.6])
+    (trainUserIds, valUserIds, testUserIds) = df.select('userId').distinct().randomSplit([0.6, 0.2, 0.2])
+    trainUserIds = [x.userId for x in trainUserIds.collect()]
+    trainUserIds_broadcast = spark.sparkContext.broadcast(trainUserIds)
+    valUserIds = [x.userId for x in valUserIds.collect()]
+    valUserIds_broadcast = spark.sparkContext.broadcast(valUserIds)
+    testUserIds = [x.userId for x in testUserIds.collect()]
+    testUserIds_broadcast = spark.sparkContext.broadcast(testUserIds)
+    val = df.filter(F.col('userId').isin(valUserIds_broadcast.value))
+    test = df.filter(F.col('userId').isin(testUserIds_broadcast.value))
+    train = df.filter(F.col('userId').isin(trainUserIds_broadcast.value))
+    val.select('userId').distinct().show()
+    test.select('userId').distinct().show()
+    (val_few_interactions,_) = val.randomSplit([0.6, 0.4])
+    (test_few_interactions,_) = test.randomSplit([0.6, 0.4])
     train = train.union(val_few_interactions).union(test_few_interactions)
     train.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet')
     val.write.mode('overwrite').parquet(f'hdfs:/user/{netID}/movielens/{size_type}/val.parquet')
