@@ -59,11 +59,17 @@ def evaluate_test_pred(model,evaluator):
     df_mov = ratingsTest.withColumn('rank', rank().over(window)).filter(col('rank') <= 100).groupby("userId").agg(func.collect_list(ratingsTest['movieId'].cast('double')).alias('movies'))
     
     test_pred = test_pred.join(df_mov, test_pred.userId==df_mov.userId).drop('userId')
-    rEvaluator = RankingEvaluator(predictionCol='pred_movies', labelCol='movies', metricName='meanAveragePrecision')
-    rankmetrics = rEvaluator.evaluate(test_pred)
-    print("rankmetrics",rankmetrics)
+    
+    metrics = ['meanAveragePrecision','meanAveragePrecisionAtK','precisionAtK','ndcgAtK','recallAtK']
+    metricsDict = {
+        'rmse':rmse
+    }
+    for metric in metrics:
+        rEvaluator = RankingEvaluator(predictionCol='pred_movies', labelCol='movies', metricName=metric)
+        metricsDict[metric] = rEvaluator.evaluate(test_pred)
+        
 
-    return rmse,rankmetrics,test_pred
+    return metricsDict,test_pred
 
 
 
@@ -77,6 +83,7 @@ if __name__ == "__main__":
     size_type = 'ml-latest-small'
     model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
 
-    evaluate_test_pred(model,evaluator)
+    metrics,_ = evaluate_test_pred(model,evaluator)
+    print(metrics)
 
     spark.stop()
