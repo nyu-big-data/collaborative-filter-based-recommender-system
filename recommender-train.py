@@ -69,6 +69,7 @@ def evaluate_test_pred(model,evaluator):
         rEvaluator = RankingEvaluator(predictionCol='pred_movies', labelCol='movies', metricName=metric)
         metricsDict[metric] = rEvaluator.evaluate(test_pred)
         
+    print(metricsDict)
 
     return metricsDict,test_pred
 
@@ -94,7 +95,7 @@ if __name__ == "__main__":
     latentRanks = [10, 50, 100, 150]
     netID = getpass.getuser()
     
-    size_types = ['ml-latest']
+    size_types = ['ml-latest','ml-latest-small']
     metrics = {}
     for size_type in size_types:
         model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
@@ -102,6 +103,7 @@ if __name__ == "__main__":
         metricDict,_ = evaluate_test_pred(model,evaluator)
         metrics[size_type] = metricDict
 
-    print(nested_dict_to_md(metricDict,columns=['Dataset','Metric Name','Value']))
+
+    print(nested_dict_to_md(metrics,columns=['Dataset','Metric Name','Value']))
 
     spark.stop()
