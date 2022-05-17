@@ -9,8 +9,9 @@ import numpy as np
 from scipy import stats
 from sklearn.model_selection import KFold, RandomizedSearchCV
 
-from utils import nested_dict_to_md
+from utils import nested_dict_to_csv
 
+import time
 
 ROOT_DIR = '/scratch/work/courses/DSGA1004-2021/movielens/'
 SEED = 42
@@ -129,11 +130,14 @@ def train(size_type):
     return performance_metrics
 
 if __name__ == "__main__":
-
-    size_types = ['ml-latest-small','ml-latest']
+    
+    size_types = ['ml-latest','ml-latest-small']
     performance_metrics = {}
     for size_type in size_types:
+        start_time = time.time()
         performance_metrics[size_type] = train(size_type)
+        print("Lightfm Dataset Size: {}, Time: {} seconds".format(size_type, (time.time() - start_time)))
     
-    nested_dict_to_md(performance_metrics,['Dataset','Metric Name','EvaluationSet','Value'])
+    nested_dict_to_csv(performance_metrics,['Dataset','Metric Name','EvaluationSet','Value'],'lightfm')
+    
     

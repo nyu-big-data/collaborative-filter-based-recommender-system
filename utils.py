@@ -10,11 +10,11 @@ def superitems(obj):
         yield (obj,)
 
 
-def nested_dict_to_md(data,columns):
+def nested_dict_to_csv(data,columns,model_name):
     '''
     Converts Nested dict to markdown table
     Data: nested dict
     columns: column name that you want (Order should be the same as nested dict parent keys to child keys)
     '''
     df = pd.DataFrame([*superitems(data)],columns=columns)
-    return df.to_markdown()
+    return df.to_csv("./{}.csv".format(model_name))

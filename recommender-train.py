@@ -8,6 +8,7 @@ from pyspark.sql.functions import col,rank
 import pyspark.sql.functions as func
 
 import pandas as pd
+import time
 
 def train_model(spark, netID,size_type, latentRanks, regularizationParams):
     schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
@@ -84,9 +85,9 @@ def superitems(obj):
         yield (obj,)
 
 
-def nested_dict_to_md(data,columns):
+def nested_dict_to_csv(data,columns,model_name):
     df = pd.DataFrame([*superitems(data)],columns=columns)
-    return df.to_markdown()
+    return df.to_csv("./{}.csv".format(model_name))
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Recommender-Model-GRP33").getOrCreate()
@@ -98,12 +99,13 @@ if __name__ == "__main__":
     size_types = ['ml-latest','ml-latest-small']
     metrics = {}
     for size_type in size_types:
+        start_time = time.time()
         model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
 
         metricDict,_ = evaluate_test_pred(model,evaluator)
         metrics[size_type] = metricDict
+        print("ALS Dataset Size: {}, Time: {} seconds".format(size_type, (time.time() - start_time)))
 
-
-    print(nested_dict_to_md(metrics,columns=['Dataset','Metric Name','Value']))
+    print(nested_dict_to_csv(metrics,['Dataset','Metric Name','Value'],'ALS'))
 
     spark.stop()
