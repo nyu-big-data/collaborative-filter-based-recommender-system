@@ -7,6 +7,7 @@ from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
 from pyspark.sql.functions import col,rank
 import pyspark.sql.functions as func
 
+import pandas as pd
 
 def train_model(spark, netID,size_type, latentRanks, regularizationParams):
     schema = 'userId INT, movieId INT, rating FLOAT , timestamp INT, title STRING'
@@ -26,7 +27,7 @@ def train_model(spark, netID,size_type, latentRanks, regularizationParams):
     evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating", predictionCol="prediction") 
     
     # Build cross validation using CrossValidator
-    cv = CrossValidator(estimator=als, estimatorParamMaps=param_grid, evaluator=evaluator, numFolds=5)
+    cv = CrossValidator(estimator=als, estimatorParamMaps=param_grid, evaluator=evaluator, numFolds=5,parallelism=2)
 
     #Fit cross validator to the training dataset
     model = cv.fit(ratingsTrain)
@@ -73,17 +74,34 @@ def evaluate_test_pred(model,evaluator):
 
 
 
+def superitems(obj):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            for i in superitems(v):
+                yield (k,) + i
+    else:
+        yield (obj,)
+
+
+def nested_dict_to_md(data,columns):
+    df = pd.DataFrame([*superitems(data)],columns=columns)
+    return df.to_markdown()
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Recommender-Model-GRP33").getOrCreate()
 
-    regularizationParams = [.1]
-    latentRanks = [50]
+    regularizationParams = [.01, .05, .1, .2]
+    latentRanks = [10, 50, 100, 150]
     netID = getpass.getuser()
-    size_type = 'ml-latest-small'
-    model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
+    
+    size_types = ['ml-latest']
+    metrics = {}
+    for size_type in size_types:
+        model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
 
-    metrics,_ = evaluate_test_pred(model,evaluator)
-    print(metrics)
+        metricDict,_ = evaluate_test_pred(model,evaluator)
+        metrics[size_type] = metricDict
+
+    print(nested_dict_to_md(metricDict,columns=['Dataset','Metric Name','Value']))
 
     spark.stop()
