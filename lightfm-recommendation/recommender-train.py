@@ -1,68 +1,138 @@
 from lightfm import LightFM
 from lightfm.data import Dataset
-from lightfm.evaluation import precision_at_k,auc_score,recall_at_k
+from lightfm.evaluation import precision_at_k,auc_score,recall_at_k,reciprocal_rank
 from lightfm.cross_validation import random_train_test_split
-from lightfm.datasets import fetch_movielens
-from scipy.sparse import csr_matrix
+import scipy.sparse as sp
 import pandas as pd
+import numpy as np
 
-movielens = fetch_movielens()
+from scipy import stats
+from sklearn.model_selection import KFold, RandomizedSearchCV
+
+from utils import nested_dict_to_md
+
+
+ROOT_DIR = '/scratch/work/courses/DSGA1004-2021/movielens'
+SEED = 42
+
+def build_interaction_matrix(shape, data, min_rating=0.0):
+
+    mat = sp.lil_matrix(shape, dtype=np.int32)
+
+    for dt in data:
+        rating = min_rating
+        if dt['rating'] >= min_rating:
+            rating = dt['rating']
+        
+        mat[dt['userId'], dt['movieId']] = rating
+
+    return mat.tocoo()
 
 def prepare_dataset(size_type):
     # Loading  csv file
-    ratingsDF = pd.read_csv('{}/ratings.csv'.format(size_type) ,usecols=['userId', 'movieId','rating'])
+    ratingsDF = pd.read_csv('{}/{}/ratings.csv'.format(ROOT_DIR,size_type) ,usecols=['userId', 'movieId','rating'])
     ratings = ratingsDF.to_dict('records')
     
-    dataset = Dataset()
-    dataset.fit((x['userId'] for x in ratings), (x['movieId'] for x in ratings))
+    num_users = ratingsDF['userId'].max() + 1
+    num_items = ratingsDF['movieId'].max() + 1
     
-    num_users, num_items = dataset.interactions_shape()
     print('Num users: {}, num_items {}.'.format(num_users, num_items))
 
-    # building  interaction matrix between userId and movieId
-    dataRating = ((x['userId'], x['movieId'],x['rating']) for x in ratings) 
-    print(dataRating)
-    (interactions, weights) = dataset.build_interactions(dataRating)
+    # building  interaction matrix between userId and movieId with ratings
+    interaction_mat = build_interaction_matrix((num_users, num_items),ratings)
     
-    # # Creating a sparse matrix
-    # interactions = csr_matrix((ratingsArr, (userIds, movieIds)))
     # spliting the interaction into test and train
-    train,test = random_train_test_split(interactions,test_percentage=0.25)    
+    train,test = random_train_test_split(interaction_mat,test_percentage=0.25)    
     interactions = {
         'train':train,
         'test':test
     }
-    # print(repr(interactions))
-    return movielens
+    return interactions
 
-def train_model(data):
+def train_model(data,hyperparams):
     # Instantiate and train the model
-    model = LightFM(loss='warp')
+    model = LightFM(**hyperparams)
     model.fit(data['train'], epochs=30, num_threads=2)
     # print(type(data))
     return model
 
 def evaluate_model(model,data):
     # Evaluate the trained model
-    train_precision = precision_at_k(model, data['train'], k=10).mean()
-    test_precision = precision_at_k(model, data['test'], k=10).mean()
+    metrics = {
+        'precision_at_k': {
+            'train':precision_at_k(model, data['train'], k=10).mean(),
+            'test':precision_at_k(model, data['test'], k=10).mean()
+        },
+        'auc_score':{
+            'train':auc_score(model, data['train']).mean(),
+            'test':auc_score(model, data['test']).mean()
+        },
+        'recall_at_k':{
+            'train':recall_at_k(model, data['train']).mean(),
+            'test':recall_at_k(model, data['test']).mean(),
+        },
+        'reciprocal_rank':{
+            'train':reciprocal_rank(model, data['train']).mean(),
+            'test':reciprocal_rank(model, data['test']).mean()
+        }
+    }
+    return metrics
 
-    train_auc = auc_score(model, data['train']).mean()
-    test_auc = auc_score(model, data['test']).mean()
+def cv_sklearn_hyperparameter_tuning(data):
 
-    train_recall = recall_at_k(model, data['train']).mean()
-    test_recall = recall_at_k(model, data['test']).mean()
+    model = LightFM(loss="warp", random_state=SEED)
+
+    # Set distributions for hyperparameters
+    randint = stats.randint(low=1, high=65)
+    randint.random_state = SEED
+    gamma = stats.gamma(a=1.2, loc=0, scale=0.13)
+    gamma.random_state = SEED
+    distr = {"no_components": randint, "learning_rate": gamma, "loss":["bpr", "warp", "warp-kos","logistic"]}
 
 
-    print('Precision: train %.2f, test %.2f.' % (train_precision, test_precision))
-    print('AUC: train %.2f, test %.2f.' % (train_auc, test_auc))
+    # Custom score function
+    def scorer(est, x, y=None):
+        return precision_at_k(est, x).mean()
+
+    # Dummy custom CV to ensure shape preservation.
+    class CV(KFold):
+        def split(self, X, y=None, groups=None):
+            idx = np.arange(X.shape[0])
+            for _ in range(self.n_splits):
+                yield idx, idx
+
+    cv = CV(n_splits=5, shuffle=True, random_state=SEED)
+    search = RandomizedSearchCV(
+        estimator=model,
+        param_distributions=distr,
+        n_iter=10,
+        scoring=scorer,
+        random_state=SEED,
+        cv=cv,
+    )
+    search.fit(data['train'])
+    return search.best_params_
 
 
+
+def train(size_type):
+    data = prepare_dataset(size_type)
+
+    hyperparams = cv_sklearn_hyperparameter_tuning(data)
+    print(hyperparams)
+    # hyperparams = {'learning_rate': 0.18410595411209124, 'loss': 'bpr', 'no_components': 21}
+    model = train_model(data,hyperparams)
+    # print(data['train'])
+    performance_metrics = evaluate_model(model,data)
+    print(performance_metrics)
+    return performance_metrics
 
 if __name__ == "__main__":
 
-    size_type = 'ml-latest-small'
-    data = prepare_dataset(size_type)
-    model = train_model(data)
-    print(data['train'])
-    evaluate_model(model,data)
+    size_types = ['ml-latest-small','ml-latest']
+    performance_metrics = {}
+    for size_type in size_types:
+        performance_metrics[size_type] = train(size_type)
+    
+    nested_dict_to_md(performance_metrics,['Dataset','Metric Name','EvaluationSet','Value'])
+    

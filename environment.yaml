@@ -7,4 +7,9 @@ dependencies:
   - pip
   - lightfm
   - pyspark
+  - pip:
+    - scikit-learn
+    - pandas
+    - scipy
+    - tabulate
 

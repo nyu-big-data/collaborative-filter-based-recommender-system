@@ -77,8 +77,8 @@ def evaluate_test_pred(model,evaluator):
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("Recommender-Model-GRP33").getOrCreate()
 
-    regularizationParams = [.01, .05, .1, .2]
-    latentRanks = [10, 50, 100, 150]
+    regularizationParams = [.1]
+    latentRanks = [50]
     netID = getpass.getuser()
     size_type = 'ml-latest-small'
     model,evaluator = train_model(spark, netID,size_type, latentRanks, regularizationParams)
