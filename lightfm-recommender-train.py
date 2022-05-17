@@ -12,7 +12,7 @@ from sklearn.model_selection import KFold, RandomizedSearchCV
 from utils import nested_dict_to_md
 
 
-ROOT_DIR = '/scratch/work/courses/DSGA1004-2021/movielens'
+ROOT_DIR = ''#'/scratch/work/courses/DSGA1004-2021/movielens/'
 SEED = 42
 
 def build_interaction_matrix(shape, data, min_rating=0.0):
@@ -30,7 +30,7 @@ def build_interaction_matrix(shape, data, min_rating=0.0):
 
 def prepare_dataset(size_type):
     # Loading  csv file
-    ratingsDF = pd.read_csv('{}/{}/ratings.csv'.format(ROOT_DIR,size_type) ,usecols=['userId', 'movieId','rating'])
+    ratingsDF = pd.read_csv('{}{}/ratings.csv'.format(ROOT_DIR,size_type) ,usecols=['userId', 'movieId','rating'])
     ratings = ratingsDF.to_dict('records')
     
     num_users = ratingsDF['userId'].max() + 1
@@ -52,7 +52,7 @@ def prepare_dataset(size_type):
 def train_model(data,hyperparams):
     # Instantiate and train the model
     model = LightFM(**hyperparams)
-    model.fit(data['train'], epochs=30, num_threads=2)
+    model.fit(data['train'], epochs=30, num_threads=8)
     # print(type(data))
     return model
 
@@ -109,6 +109,7 @@ def cv_sklearn_hyperparameter_tuning(data):
         scoring=scorer,
         random_state=SEED,
         cv=cv,
+        n_jobs=8
     )
     search.fit(data['train'])
     return search.best_params_
