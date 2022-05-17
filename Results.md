@@ -92,12 +92,12 @@ latentRanks = [10, 50, 100, 150]
 <tr>
 <td>ml-latest</td>
 <td>val</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>-</td>
-<td>0.7153376384085554</td>
-<td>0.907697335721004</td>
+<td>0.99845</td>
+<td>0.65197</td>
+<td>0.99906</td>
+<td>0.76604</td>
+<td>0.7313</td>
+<td>0.9896</td>
 <td>Rank: 150  RegParam: 0.05 </td>
 </tr>
 </tbody>
