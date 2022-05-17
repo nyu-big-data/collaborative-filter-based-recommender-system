@@ -12,7 +12,7 @@ from sklearn.model_selection import KFold, RandomizedSearchCV
 from utils import nested_dict_to_md
 
 
-ROOT_DIR = ''#'/scratch/work/courses/DSGA1004-2021/movielens/'
+ROOT_DIR = '/scratch/work/courses/DSGA1004-2021/movielens/'
 SEED = 42
 
 def build_interaction_matrix(shape, data, min_rating=0.0):
