@@ -102,3 +102,25 @@ latentRanks = [10, 50, 100, 150]
 </tr>
 </tbody>
 </table>
+
+
+### LightFM
+
+| Dataset         | Metric Name     | EvaluationSet   |     Value |
+|:----------------|:----------------|:----------------|----------:|
+| ml-latest-small | precision_at_k  | train           | 0.497377  |
+| ml-latest-small | precision_at_k  | test            | 0.0586885 |
+| ml-latest-small | auc_score       | train           | 0.997965  |
+| ml-latest-small | auc_score       | test            | 0.894303  |
+| ml-latest-small | recall_at_k     | train           | 0.090199  |
+| ml-latest-small | recall_at_k     | test            | 0.0387905 |
+| ml-latest-small | reciprocal_rank | train           | 0.711089  |
+| ml-latest-small | reciprocal_rank | test            | 0.160884  |
+| ml-latest       | precision_at_k  | train           | 0.497377  |
+| ml-latest       | precision_at_k  | test            | 0.0586885 |
+| ml-latest       | auc_score       | train           | 0.997965  |
+| ml-latest       | auc_score       | test            | 0.894303  |
+| ml-latest       | recall_at_k     | train           | 0.090199  |
+| ml-latest       | recall_at_k     | test            | 0.0387905 |
+| ml-latest       | reciprocal_rank | train           | 0.711089  |
+| ml-latest       | reciprocal_rank | test            | 0.160884  |
