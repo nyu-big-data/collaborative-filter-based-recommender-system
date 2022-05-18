@@ -70,10 +70,10 @@ latentRanks = [10, 50, 100, 150]
 <tr>
 <th>Dataset</th>
 <th>EvaluationSet</th>
-<th>meanAveragePrecisionAtK</th>
-<th>precisionAtK</th>
-<th>ndcgAtK</th>
-<th>recallAtK</th>
+<th>MAP@K</th>
+<th>precision@K</th>
+<th>ndcg@K</th>
+<th>recall@K</th>
 <th>RMSE</th>
 <th>MAP</th>
 <th>Hyperparameters</th>
