@@ -8,7 +8,7 @@ from pyspark.ml.evaluation import RankingEvaluator
 
 def baseline_popularity_model(spark,netID,size_type,damping_factor):
     schema = 'userId INT, movieId INT, rating FLOAT, timestamp INT, title STRING'
-    ratingsTrain = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet', header=True, schema=schema)
+    ratingsTrain = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/train.parquet', header=True, schema=schema)
     finalRatings = (ratingsTrain.select('userId').distinct()).crossJoin(ratingsTrain.select('movieId').distinct())
     itemRatings = ratingsTrain.groupby('movieId').agg((F.sum('rating')/(F.count('rating')+damping_factor)).alias('pRatings'))
     finalRatings = finalRatings.join(itemRatings, ['movieId'], "left")\
@@ -18,7 +18,7 @@ def baseline_popularity_model(spark,netID,size_type,damping_factor):
 def baseline_popularity_model_v2(spark,netID,size_type,damping_factor_global,damping_factor_item,damping_factor_user):
     # Implementing R = u + bi + bu (popularity model)
     schema = 'userId INT, movieId INT, rating FLOAT, timestamp INT, title STRING'
-    ratingsTrain = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/train.parquet', header=True, schema=schema)
+    ratingsTrain = spark.read.parquet(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/train.parquet', header=True, schema=schema)
     finalRatings = (ratingsTrain.select('userId').distinct()).crossJoin(ratingsTrain.select('movieId').distinct())
     global_ratings = ratingsTrain.agg((F.sum('rating')/(F.count('rating')+damping_factor_global)).alias('global_ratings')).first()['global_ratings']
     movie_bias = ratingsTrain.groupby('movieId').agg((F.sum(ratingsTrain.rating - global_ratings)/(F.count('rating')+damping_factor_item))\
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     metrics = ["meanAveragePrecisionAtK", "precisionAtK", "ndcgAtK", "recallAtK"]
     damping_factor = 100
     for size_type in size_types:
-        val_file = f'hdfs:/user/{netID}/movielens/{size_type}/val.parquet'
-        test_file = f'hdfs:/user/{netID}/movielens/{size_type}/test.parquet'
+        val_file = f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/val.parquet'
+        test_file = f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/test.parquet'
         # Using Basic Model with no User and Item Bias
         finalRatings = baseline_popularity_model(spark, netID, size_type, damping_factor)
         metrics_values_val = runEval(spark, netID, size_type, val_file, finalRatings, metrics)
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         metrics_values_val["dataset"] = "val"
         metrics_values_test["dataset"] = "test"
         metricsDF = spark.createDataFrame(Row(**x) for x in [metrics_values_val, metrics_values_test])
-        metricsDF.write.mode("overwrite").option("header",True).csv(f'hdfs:/user/{netID}/movielens/{size_type}/metrics-basic.csv')
+        metricsDF.write.mode("overwrite").option("header",True).csv(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/metrics-basic.csv')
         # Using Enhanced Model with User and Item Bias
         finalRatings = baseline_popularity_model_v2(spark, netID, size_type, damping_factor, damping_factor, damping_factor)
         metrics_values_val = runEval(spark, netID, size_type, val_file, finalRatings, metrics)
@@ -95,5 +95,5 @@ if __name__ == "__main__":
         metrics_values_val["dataset"] = "val"
         metrics_values_test["dataset"] = "test"
         metricsDF = spark.createDataFrame(Row(**x) for x in [metrics_values_val, metrics_values_test])
-        metricsDF.write.mode("overwrite").option("header",True).csv(f'hdfs:/user/{netID}/movielens/{size_type}/metrics-enhanced.csv')
+        metricsDF.write.mode("overwrite").option("header",True).csv(f'hdfs:/user/{netID}/movielens/{size_type}/popular_baseline/metrics-enhanced.csv')
     spark.stop()
