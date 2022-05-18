@@ -13,7 +13,7 @@ from utils import nested_dict_to_csv
 
 import time
 
-ROOT_DIR = '/scratch/work/courses/DSGA1004-2021/movielens/'
+ROOT_DIR = ''#'/scratch/work/courses/DSGA1004-2021/movielens/'
 SEED = 42
 
 def build_interaction_matrix(shape, data, min_rating=0.0):
@@ -61,16 +61,16 @@ def evaluate_model(model,data):
     # Evaluate the trained model
     metrics = {
         'precision_at_k': {
-            'train':precision_at_k(model, data['train'], k=10).mean(),
-            'test':precision_at_k(model, data['test'], k=10).mean()
+            'train':precision_at_k(model, data['train'], k=100).mean(),
+            'test':precision_at_k(model, data['test'], k=100).mean()
         },
         'auc_score':{
             'train':auc_score(model, data['train']).mean(),
             'test':auc_score(model, data['test']).mean()
         },
         'recall_at_k':{
-            'train':recall_at_k(model, data['train']).mean(),
-            'test':recall_at_k(model, data['test']).mean(),
+            'train':recall_at_k(model, data['train'],k=100).mean(),
+            'test':recall_at_k(model, data['test'],k=100).mean(),
         },
         'reciprocal_rank':{
             'train':reciprocal_rank(model, data['train']).mean(),

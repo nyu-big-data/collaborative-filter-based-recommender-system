@@ -64,63 +64,19 @@
 We tried the following hypermeters:
 regularizationParams = [.01, .05, .1, .2]
 latentRanks = [10, 50, 100, 150]
+|data |map@K |precision@K|ndcg@K|recall@K|RMSE  |MAE   |
+|-----|------|-----------|------|--------|------|------|
+|small|0.0039|0.0454     |0.0413|0.0163  |0.9631|0.7525|
+|large|0.0021|0.0338     |0.0253|0.0099  |0.861 |0.6797|
 
-<table>
-<tbody>
-<tr>
-<th>Dataset</th>
-<th>EvaluationSet</th>
-<th>MAP@K</th>
-<th>precision@K</th>
-<th>ndcg@K</th>
-<th>recall@K</th>
-<th>RMSE</th>
-<th>MAP</th>
-<th>Hyperparameters</th>
-</tr>
-<tr>
-<td>ml-latest-small</td>
-<td>val</td>
-<td>0.9867</td>
-<td>0.8409</td>
-<td>0.9916</td>
-<td>0.6361</td>
-<td>0.8703</td>
-<td>0.9629</td>
-<td>Rank: 50  RegParam: 0.1 </td>
-</tr>
-<tr>
-<td>ml-latest</td>
-<td>val</td>
-<td>0.99845</td>
-<td>0.65197</td>
-<td>0.99906</td>
-<td>0.76604</td>
-<td>0.7313</td>
-<td>0.9896</td>
-<td>Rank: 150  RegParam: 0.05 </td>
-</tr>
-</tbody>
-</table>
 
 
 ### LightFM
 
-| Dataset         | Metric Name     | EvaluationSet   |     Value |
-|:----------------|:----------------|:----------------|----------:|
-| ml-latest-small | precision_at_k  | train           | 0.497377  |
-| ml-latest-small | precision_at_k  | test            | 0.0586885 |
-| ml-latest-small | auc_score       | train           | 0.997965  |
-| ml-latest-small | auc_score       | test            | 0.894303  |
-| ml-latest-small | recall_at_k     | train           | 0.090199  |
-| ml-latest-small | recall_at_k     | test            | 0.0387905 |
-| ml-latest-small | reciprocal_rank | train           | 0.711089  |
-| ml-latest-small | reciprocal_rank | test            | 0.160884  |
-| ml-latest       | precision_at_k  | train           | 0.497377  |
-| ml-latest       | precision_at_k  | test            | 0.0586885 |
-| ml-latest       | auc_score       | train           | 0.997965  |
-| ml-latest       | auc_score       | test            | 0.894303  |
-| ml-latest       | recall_at_k     | train           | 0.090199  |
-| ml-latest       | recall_at_k     | test            | 0.0387905 |
-| ml-latest       | reciprocal_rank | train           | 0.711089  |
-| ml-latest       | reciprocal_rank | test            | 0.160884  |
+|Dataset|evalset|precision@K|auc   |recall@K|reciprocal rank|
+|-------|-------|-----------|------|--------|---------------|
+|small  |train  |0.4974     |0.9979|0.0902  |0.7111         |
+|small  |test   |0.0587     |0.8943|0.0388  |0.1609         |
+|large  |train  |0.3918     |0.9617|0.0616  |0.82           |
+|large  |test   |0.0311     |0.8538|0.0311  |0.278          |
+
