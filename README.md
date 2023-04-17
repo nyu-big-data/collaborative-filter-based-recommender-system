@@ -101,13 +101,3 @@ Include a PDF of your final report through Brightspace.  Specifically, your fina
 - Documentation of extension(s)
 
 Any additional software components that you use should be cited and documented with installation instructions.
-
-## Timeline
-
-It will be helpful to commit your work in progress to the repository.
-Toward this end, we recommend the following timeline with a preliminary submission on 2022-04-29:
-
-- [ ] 2022/04/22: popularity baseline model and evaluation on small subset.
-- [ ] **2022/04/29**: checkpoint submission with baseline results on both small and large datasets.  Preliminary results for matrix factorization on the small dataset.
-- [ ] 2022/05/06: scale up to the large dataset and develop extensions.
-- [ ] 2022/05/17: final project submission.  **NO EXTENSIONS PAST THIS DATE.**
